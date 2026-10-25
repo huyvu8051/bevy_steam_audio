@@ -1,8 +1,14 @@
 [workspace]
 members = [
-    "crates/*",
+    "crates/bevy_steam_audio",
+    "crates/avian_steam_audio",
     "examples",
 ]
+# trenchbroom_steam_audio is out of the workspace, not ported. It bridges to a
+# Quake map editor this game does not use, and it is the only crate here still
+# on Bevy 0.18's SceneRoot and event API. Left on disk so it can be picked up
+# if it is ever wanted.
+exclude = ["crates/trenchbroom_steam_audio"]
 resolver = "3"
 
 [workspace.package]
@@ -25,7 +31,7 @@ trenchbroom_steam_audio = { version = "0.3.0-rc.2", path = "crates/trenchbroom_s
 audionimbus = { version = "0.11", default-features = false }
 audionimbus-sys = { version = "4.8",  default-features = false }
 
-bevy_seedling = { version = "0.7", default-features = false, features = ["reflect"] }
+bevy_seedling = { version = "0.8", default-features = false, features = ["reflect"] }
 bevy_app = { version = "0.19", default-features = false }
 bevy_ecs = { version = "0.19", default-features = false }
 bevy_transform = { version = "0.19", default-features = false }
@@ -44,10 +50,10 @@ bevy_gizmos = { version = "0.19", default-features = false }
 bevy_color = { version = "0.19", default-features = false }
 bevy_scene = { version = "0.19", default-features = false }
 
-avian3d = { version = "0.7", default-features = false, features = ["3d"] }
+avian3d = { version = "0.7", default-features = false, features = ["3d", "f32", "parry-f32"] }
 
 itertools = "0.14"
-firewheel = { version = "0.10", default-features = false, features = ["std"] }
+firewheel = { version = "0.12", default-features = false, features = ["std"] }
 crossbeam-channel = "0.5"
 prealloc_ref_vec = "0.1"
 criterion = { version = "0.7", features = ["html_reports"] }

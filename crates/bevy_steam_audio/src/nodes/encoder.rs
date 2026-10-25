@@ -1,3 +1,4 @@
+use firewheel::node::NodeError;
 use crate::{
     STEAM_AUDIO_CONTEXT,
     nodes::{FixedProcessBlock, apply_volume_ramp},
@@ -106,26 +107,27 @@ fn init_steam_audio_node(
 impl AudioNode for SteamAudioNode {
     type Configuration = SteamAudioNodeConfig;
 
-    fn info(&self, _config: &Self::Configuration) -> AudioNodeInfo {
-        AudioNodeInfo::new()
+    fn info(&self, _config: &Self::Configuration) -> Result<AudioNodeInfo, NodeError> {
+        Ok(AudioNodeInfo::new()
             .debug_name("Steam Audio node")
             .channel_config(ChannelConfig {
                 num_inputs: ChannelCount::STEREO,
                 num_outputs: ChannelCount::STEREO,
-            })
+            }))
     }
 
     fn construct_processor(
         &self,
         config: &Self::Configuration,
         cx: ConstructProcessorContext,
-    ) -> impl AudioNodeProcessor {
+    ) -> Result<impl AudioNodeProcessor, NodeError> {
         let settings = audionimbus::AudioSettings {
             sampling_rate: cx.stream_info.sample_rate.get(),
             frame_size: config.quality.frame_size,
         };
         let hrtf = config.hrtf.clone().expect("Created an `AudioNode` before the audio stream was ready. Please wait until `SteamAudioReady` is triggered.");
-        SteamAudioProcessor {
+        Ok(SteamAudioProcessor {
+            prev_output_was_silent: false,
             params: self.clone(),
 
             direct_effect: audionimbus::DirectEffect::try_new(
@@ -188,11 +190,15 @@ impl AudioNode for SteamAudioNode {
                 (config.quality.frame_size * config.quality.num_channels()) as usize,
             )
             .collect(),
-        }
+        })
     }
 }
 
 struct SteamAudioProcessor {
+    /// What this node returned last block. ProcInfo carried it until firewheel
+    /// 0.12 dropped it; out_silence_mask asks about the current block, which is
+    /// a different question, and answering it wrongly truncates the tail.
+    prev_output_was_silent: bool,
     quality: SteamAudioQuality,
     params: SteamAudioNode,
     direct_effect: audionimbus::DirectEffect,
@@ -211,13 +217,9 @@ struct SteamAudioProcessor {
 }
 
 impl AudioNodeProcessor for SteamAudioProcessor {
-    fn process(
-        &mut self,
-        proc_info: &ProcInfo,
-        proc_buffers: ProcBuffers,
-        events: &mut ProcEvents,
-        extra: &mut ProcExtra,
-    ) -> ProcessStatus {
+    /// Split out of `process`: firewheel 0.12 delivers events on their own
+    /// callback, ahead of the block they apply to.
+    fn events(&mut self, _info: &ProcInfo, events: &mut ProcEvents, _extra: &mut ProcExtra) {
         for mut event in events.drain() {
             if let Some(patch) = SteamAudioNode::patch_event(&event) {
                 if matches!(patch, SteamAudioNodePatch::Reset(..)) {
@@ -231,10 +233,19 @@ impl AudioNodeProcessor for SteamAudioProcessor {
             }
             event.downcast_swap(&mut self.source);
         }
+    }
+
+    fn process(
+        &mut self,
+        proc_info: &ProcInfo,
+        proc_buffers: ProcBuffers,
+        extra: &mut ProcExtra,
+    ) -> ProcessStatus {
 
         // If the previous output of this node was silent, and the inputs are also silent
         // then we know there is no reverb tail left and we can skip processing.
-        if proc_info.prev_output_was_silent && proc_info.in_silence_mask.all_channels_silent(2) {
+        if self.prev_output_was_silent && proc_info.in_silence_mask.all_channels_silent(2) {
+            self.prev_output_was_silent = true;
             return ProcessStatus::ClearAllOutputs;
         }
 
@@ -243,6 +254,7 @@ impl AudioNodeProcessor for SteamAudioProcessor {
             // after insertion into the graph, then something's gone
             // quite wrong. So, we'll clear the fixed buffers.
             self.fixed_block.clear();
+            self.prev_output_was_silent = true;
             return ProcessStatus::ClearAllOutputs;
         };
 
@@ -481,13 +493,15 @@ impl AudioNodeProcessor for SteamAudioProcessor {
         });
 
         // check for silence when the input is silent
-        if matches!(result, ProcessStatus::OutputsModified)
+        let status = if matches!(result, ProcessStatus::OutputsModified)
             && proc_info.in_silence_mask.all_channels_silent(2)
         {
             proc_buffers.check_for_silence_on_outputs(0.0001)
         } else {
             result
-        }
+        };
+        self.prev_output_was_silent = matches!(status, ProcessStatus::ClearAllOutputs);
+        status
     }
 
     fn new_stream(

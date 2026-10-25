@@ -1,3 +1,4 @@
+use firewheel::node::NodeError;
 use crate::{
     STEAM_AUDIO_CONTEXT,
     nodes::FixedProcessBlock,
@@ -76,20 +77,20 @@ impl AmbisonicDecodeNodeConfig {
 impl AudioNode for AmbisonicDecodeNode {
     type Configuration = AmbisonicDecodeNodeConfig;
 
-    fn info(&self, config: &Self::Configuration) -> AudioNodeInfo {
-        AudioNodeInfo::new()
+    fn info(&self, config: &Self::Configuration) -> Result<AudioNodeInfo, NodeError> {
+        Ok(AudioNodeInfo::new()
             .debug_name("Ambisonic decode node")
             .channel_config(ChannelConfig {
                 num_inputs: ChannelCount::new(config.num_channels()).unwrap(),
                 num_outputs: ChannelCount::STEREO,
-            })
+            }))
     }
 
     fn construct_processor(
         &self,
         config: &Self::Configuration,
         cx: ConstructProcessorContext,
-    ) -> impl AudioNodeProcessor {
+    ) -> Result<impl AudioNodeProcessor, NodeError> {
         let settings = audionimbus::AudioSettings {
             sampling_rate: cx.stream_info.sample_rate.get(),
             frame_size: config.quality.frame_size,
@@ -103,8 +104,7 @@ impl AudioNode for AmbisonicDecodeNode {
             },
         )
         .unwrap();
-
-        SteamAudioDecodeProcessor {
+        Ok(SteamAudioDecodeProcessor {
             fixed_block: FixedProcessBlock::new(
                 config.quality.frame_size as usize,
                 cx.stream_info.max_block_frames.get() as usize,
@@ -126,7 +126,7 @@ impl AudioNode for AmbisonicDecodeNode {
             order: config.order.unwrap(),
             quality: config.quality,
             mix_ptrs: ChannelPtrs::new(config.num_channels() as usize),
-        }
+        })
     }
 }
 
@@ -148,19 +148,23 @@ impl SteamAudioDecodeProcessor {
 }
 
 impl AudioNodeProcessor for SteamAudioDecodeProcessor {
-    fn process(
-        &mut self,
-        proc_info: &ProcInfo,
-        proc_buffers: ProcBuffers,
-        events: &mut ProcEvents,
-        _: &mut ProcExtra,
-    ) -> ProcessStatus {
+    /// Split out of `process`: firewheel 0.12 delivers events on their own
+    /// callback, ahead of the block they apply to.
+    fn events(&mut self, _info: &ProcInfo, events: &mut ProcEvents, _extra: &mut ProcExtra) {
         for patch in events.drain_patches::<AmbisonicDecodeNode>() {
             if matches!(patch, AmbisonicDecodeNodePatch::Reset(..)) {
                 self.ambisonics_decode_effect.reset();
             }
             Patch::apply(&mut self.params, patch);
         }
+    }
+
+    fn process(
+        &mut self,
+        proc_info: &ProcInfo,
+        proc_buffers: ProcBuffers,
+        _: &mut ProcExtra,
+    ) -> ProcessStatus {
 
         if proc_info
             .in_silence_mask

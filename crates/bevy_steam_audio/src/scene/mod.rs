@@ -48,7 +48,7 @@ fn remove_material(remove: On<Remove, SteamAudioMaterial>, mut commands: Command
 }
 
 fn remove_dynamic_mesh_from_scene(
-    remove: On<Replace, SteamAudioInstancedMesh>,
+    remove: On<Discard, SteamAudioInstancedMesh>,
     instanced_mesh: Query<&SteamAudioInstancedMesh, Allow<Disabled>>,
     mut root: ResMut<SteamAudioRootScene>,
 ) -> Result {
@@ -59,7 +59,7 @@ fn remove_dynamic_mesh_from_scene(
 }
 
 fn remove_static_mesh_from_scene(
-    remove: On<Replace, SteamAudioStaticMesh>,
+    remove: On<Discard, SteamAudioStaticMesh>,
     static_mesh: Query<&SteamAudioStaticMesh, Allow<Disabled>>,
     mut root: ResMut<SteamAudioRootScene>,
 ) -> Result {
