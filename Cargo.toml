@@ -26,25 +26,25 @@ audionimbus = { version = "0.11", default-features = false }
 audionimbus-sys = { version = "4.8",  default-features = false }
 
 bevy_seedling = { version = "0.7", default-features = false, features = ["reflect"] }
-bevy_app = { version = "0.18", default-features = false }
-bevy_ecs = { version = "0.18", default-features = false }
-bevy_transform = { version = "0.18", default-features = false }
-bevy_math = { version = "0.18", default-features = false }
-bevy_utils = { version = "0.18", default-features = false }
-bevy_log = { version = "0.18", default-features = false }
-bevy_reflect = { version = "0.18", default-features = false }
-bevy_derive = { version = "0.18", default-features = false }
-bevy_platform = { version = "0.18", default-features = false }
-bevy_asset = { version = "0.18", default-features = false }
-bevy_mesh = { version = "0.18", default-features = false }
-bevy_time = { version = "0.18", default-features = false }
-bevy_tasks = { version = "0.18", default-features = false }
-bevy_camera = { version = "0.18", default-features = false }
-bevy_gizmos = { version = "0.18", default-features = false }
-bevy_color = { version = "0.18", default-features = false }
-bevy_scene = { version = "0.18", default-features = false }
+bevy_app = { version = "0.19", default-features = false }
+bevy_ecs = { version = "0.19", default-features = false }
+bevy_transform = { version = "0.19", default-features = false }
+bevy_math = { version = "0.19", default-features = false }
+bevy_utils = { version = "0.19", default-features = false }
+bevy_log = { version = "0.19", default-features = false }
+bevy_reflect = { version = "0.19", default-features = false }
+bevy_derive = { version = "0.19", default-features = false }
+bevy_platform = { version = "0.19", default-features = false }
+bevy_asset = { version = "0.19", default-features = false }
+bevy_mesh = { version = "0.19", default-features = false }
+bevy_time = { version = "0.19", default-features = false }
+bevy_tasks = { version = "0.19", default-features = false }
+bevy_camera = { version = "0.19", default-features = false }
+bevy_gizmos = { version = "0.19", default-features = false }
+bevy_color = { version = "0.19", default-features = false }
+bevy_scene = { version = "0.19", default-features = false }
 
-avian3d = { version = "0.6.0-rc.1", default-features = false, features = ["3d"] }
+avian3d = { version = "0.7", default-features = false, features = ["3d"] }
 
 itertools = "0.14"
 firewheel = { version = "0.10", default-features = false, features = ["std"] }
@@ -58,7 +58,7 @@ wildmatch = "2"
 bevy_trenchbroom = "0.13.0-rc.1"
 bevy_trenchbroom_avian = "0.13.0-rc.1"
 
-bevy = { version = "0.18", default-features = false, features = [
+bevy = { version = "0.19", default-features = false, features = [
   "std",
   "async_executor",
   "android-game-activity",
